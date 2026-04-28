@@ -9,3 +9,5 @@ class TimeoutError(AsyncHttpError):
 
 class DNSError(AsyncHttpError):
     """Failed to resolve hostname"""
+class PortError(AsyncHttpError):
+    """Failed to resolve port"""

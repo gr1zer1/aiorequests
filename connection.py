@@ -1,5 +1,7 @@
 import asyncio
 import socket
+from request import Request
+
 
 from exception import ConnectError, DNSError, TimeoutError
 
@@ -10,6 +12,11 @@ class Connection:
         self.port: int  = port
         self._sock: socket.socket | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
+    
+    @classmethod
+    def from_request(cls,request:Request):
+        return cls(request.parsed_url.hostname,request.port)
+    
 
     async def connect(self, timeout: float = 10.0):
         self._loop = asyncio.get_event_loop()

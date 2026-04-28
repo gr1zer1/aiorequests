@@ -1,5 +1,6 @@
 import json
 from urllib.parse import urlparse, ParseResult
+from exception import PortError
 
 
 class Request:
@@ -10,18 +11,19 @@ class Request:
         self.url = url
         self.headers = headers or {}
         self.body = body
+
+        self._fix_url()
+
+        self.parsed_url = urlparse(self.url)
     
     def _fix_url(self):
         if "://" not in self.url:
             self.url = "http://" + self.url
-        
+    
+    
 
     def to_bytes(self) -> bytes:
-        self._fix_url()
         
-        self.parsed_url = urlparse(self.url)
-
-
         path = self.parsed_url.path or "/"
         if self.parsed_url.query:
             path += f"?{self.parsed_url.query}"
@@ -55,3 +57,16 @@ class Request:
         request = request_path + request_headers + "\r\n"
 
         return request.encode("utf-8") + body_bytes
+
+
+    @property
+    def port(self) -> int:
+        if self.parsed_url.port is not None:
+            return self.parsed_url.port
+        elif self.parsed_url.scheme == "http":
+            return 80
+        elif self.parsed_url.scheme == "https":
+            return 443
+        
+        else:
+            raise PortError

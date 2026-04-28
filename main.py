@@ -3,12 +3,12 @@ import asyncio
 from request import Request
 
 async def main():
-    connection = Connection("httpbin.org",80)
+    request = Request("get","httpbin.org/get")
+    connection = Connection.from_request(request)
 
     await connection.connect()
     print(f"Connected: {connection.is_connected}")
 
-    request = Request("get","httpbin.org/get")
 
     await connection.send(
         request.to_bytes() 
@@ -18,6 +18,6 @@ async def main():
         response += chunk
 
     print(str(response.decode()))
-    connection.close
+    connection.close()
 
 asyncio.run(main())
