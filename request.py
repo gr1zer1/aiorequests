@@ -5,14 +5,22 @@ from urllib.parse import urlparse, ParseResult
 class Request:
     parsed_url: ParseResult | None
 
-    def __init__(self, method: str, url: str, headers: dict | None = None, body=None):
+    def __init__(self, method: str, url: str, headers: dict | None = None, body: dict | str | None = None):
         self.method = method.upper()
         self.url = url
         self.headers = headers or {}
         self.body = body
+    
+    def _fix_url(self):
+        if "://" not in self.url:
+            self.url = "http://" + self.url
+        
 
     def to_bytes(self) -> bytes:
+        self._fix_url()
+        
         self.parsed_url = urlparse(self.url)
+
 
         path = self.parsed_url.path or "/"
         if self.parsed_url.query:
@@ -23,7 +31,7 @@ class Request:
         headers = dict(self.headers)
 
         if "Host" not in headers:
-            headers["Host"] = self.parsed_url.netloc
+            headers["Host"] = self.parsed_url.hostname
 
         headers["Connection"] = "close"
 
