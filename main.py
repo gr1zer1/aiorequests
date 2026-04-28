@@ -1,5 +1,9 @@
 from connection import Connection
 import asyncio
+from urllib.parse import urlparse
+
+url_parsed = urlparse("http://shop.com/products/42?lang=pl&currency=usd")
+print(url_parsed.query)
 
 
 async def main():
