@@ -35,7 +35,6 @@ class Request:
         if "Host" not in headers:
             headers["Host"] = self.parsed_url.hostname
 
-        headers["Connection"] = "close"
 
         body_bytes = b""
 

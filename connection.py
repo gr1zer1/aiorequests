@@ -17,6 +17,11 @@ class Connection:
     def from_request(cls,request:Request):
         return cls(request.parsed_url.hostname,request.port)
     
+    @classmethod
+    def create_conn_from_url(cls,url: str):
+        _request = Request("",url)
+        return cls.from_request(request=_request)
+    
 
     async def connect(self, timeout: float = 10.0):
         self._loop = asyncio.get_event_loop()

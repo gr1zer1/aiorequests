@@ -2,25 +2,19 @@ from connection import Connection
 import asyncio
 from request import Request
 from response import Response
+from client import Client
 
 async def main():
-    request = Request("get","httpbin.org/get")
-    connection = Connection.from_request(request)
-
-    await connection.connect()
-    print(f"Connected: {connection.is_connected}")
 
 
-    await connection.send(
-        request.to_bytes() 
-    )
-    response = b''
-    while chunk := await connection.recv():
-        response += chunk
+    client = Client()
 
-    response = Response.from_bytes(response)
+    async with client as session:
+        response = await session.get("http://httpbin.org/get")
+
+
+
     print(response.body)
 
-    connection.close()
 
 asyncio.run(main())

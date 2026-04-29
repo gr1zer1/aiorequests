@@ -31,14 +31,18 @@ class Response:
     def from_bytes(cls,data: bytes):
         response_body = data.decode()
 
-        head, body = response_body.split("\r\n\r\n", 1)
+        try:
+            head, body = response_body.split("\r\n\r\n", 1)
+        except:
+            head = response_body
+            body = None
         headers = head.split("\r\n")
 
         schema,status_code,status = cls._parse_status(headers[0])
 
         headers = cls._parse_headers(headers[1:])
 
-        if headers.get("Content-Type") is None:
+        if headers.get("Content-Type") is None or body is None:
             parsed_body = None
         elif "application/json" in headers.get("Content-Type"):
 
