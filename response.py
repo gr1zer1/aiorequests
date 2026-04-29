@@ -2,9 +2,8 @@ import json
 from typing import Any
 
 class Response:
-    schema: None | str    
 
-    def __init__(self,schema: str, status_code: int, status: str, headers: dict[str,str], body:Any):
+    def __init__(self,schema: str, status_code: int, status: str, headers: dict[str,str], body: Any | None):
         self.schema = schema
         self.status_code = status_code
         self.status = status
@@ -14,8 +13,8 @@ class Response:
     
     @staticmethod
     def _parse_status(line:str) -> tuple[str,int,str]:
-        line = line.split(" ")
-        return line[0],int(line[1]),f"{line[1]}_{line[2]}"
+        line = line.split(" ",2)
+        return line[0],int(line[1]),f"{line[1]} {line[2]}"
     
     @staticmethod
     def _parse_headers(headers:list[str]) -> dict[str,str]:
@@ -23,7 +22,7 @@ class Response:
 
         for header in headers:
             kv = header.split(":",1)
-            parsed_headers[kv[0]] = kv[1]
+            parsed_headers[kv[0]] = kv[1].strip()
 
         return parsed_headers
 
@@ -39,7 +38,13 @@ class Response:
 
         headers = cls._parse_headers(headers[1:])
 
-        parsed_body = json.loads(body)
+        if headers.get("Content-Type") is None:
+            parsed_body = None
+        elif "application/json" in headers.get("Content-Type"):
+
+            parsed_body = json.loads(body)
+            
+        else: parsed_body = body
 
         return cls(schema,status_code,status,headers,parsed_body)
 
