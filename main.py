@@ -1,6 +1,7 @@
 from connection import Connection
 import asyncio
 from request import Request
+from response import Response
 
 async def main():
     request = Request("get","httpbin.org/get")
@@ -17,7 +18,9 @@ async def main():
     while chunk := await connection.recv():
         response += chunk
 
-    print(str(response.decode()))
+    response = Response.from_bytes(response)
+    print(response.body)
+
     connection.close()
 
 asyncio.run(main())
