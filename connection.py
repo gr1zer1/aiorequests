@@ -1,21 +1,24 @@
 import asyncio
 import socket
 from request import Request
+import ssl
 
 
 from exception import ConnectError, DNSError, TimeoutError
 
 
 class Connection:
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str, port: int, schema: str):
         self.host: str = host
         self.port: int  = port
+        self.schema = schema
         self._sock: socket.socket | None = None
+        self.ssl_sock = ssl.SSLSocket | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
     
     @classmethod
     def from_request(cls,request:Request):
-        return cls(request.parsed_url.hostname,request.port)
+        return cls(request.parsed_url.hostname, request.port, request.parsed_url.scheme)
     
     @classmethod
     def create_conn_from_url(cls,url: str):
@@ -41,6 +44,26 @@ class Connection:
 
         self._sock = socket.socket(family, socktype, proto)
         self._sock.setblocking(False)
+        if self.schema == "https":
+            context = ssl.create_default_context()
+            transport, protocol = await self._loop.create_connection(
+                lambda: MyProtocol(),
+                host=self.host,
+                port=self.port,
+                family=family,
+                proto=proto,
+                
+            )
+
+            tls_transport = await self._loop.start_tls(
+                
+                transport=transport,
+                protocol=protocol,
+                sslcontext=context
+            )
+
+
+            
 
         try:
             await asyncio.wait_for(
@@ -68,3 +91,9 @@ class Connection:
     @property
     def is_connected(self) -> bool:
         return self._sock is not None
+    
+
+
+class MyProtocol(asyncio.Protocol):
+    def connection_made(self, transport):
+        print("Connected!")

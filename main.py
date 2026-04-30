@@ -10,7 +10,7 @@ async def main():
     client = Client()
 
     async with client as session:
-        response = await session.get("http://httpbin.org/get")
+        response = await session.get("https://httpbin.org/get")
 
 
 
