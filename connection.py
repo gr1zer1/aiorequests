@@ -13,9 +13,10 @@ class Connection:
         self.port: int  = port
         self.schema = schema
         self._sock: socket.socket | None = None
-        self.ssl_sock = ssl.SSLSocket | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
-    
+        self.tls_transport: asyncio.Transport | None = None
+        self.protocol: MyProtocol | None = None
+
     @classmethod
     def from_request(cls,request:Request):
         return cls(request.parsed_url.hostname, request.port, request.parsed_url.scheme)
@@ -42,11 +43,10 @@ class Connection:
 
         family, socktype, proto, canonname, sockaddr = infos[0]
 
-        self._sock = socket.socket(family, socktype, proto)
-        self._sock.setblocking(False)
+       
         if self.schema == "https":
             context = ssl.create_default_context()
-            transport, protocol = await self._loop.create_connection(
+            transport, self.protocol = await self._loop.create_connection(
                 lambda: MyProtocol(),
                 host=self.host,
                 port=self.port,
@@ -55,45 +55,65 @@ class Connection:
                 
             )
 
-            tls_transport = await self._loop.start_tls(
+            self.tls_transport = await self._loop.start_tls(
                 
                 transport=transport,
-                protocol=protocol,
+                protocol=self.protocol,
                 sslcontext=context
             )
 
+        else:
+            self._sock = socket.socket(family, socktype, proto)
+            self._sock.setblocking(False)
 
-            
-
-        try:
-            await asyncio.wait_for(
-                self._loop.sock_connect(self._sock, sockaddr),
-                timeout=timeout,
-            )
-        except asyncio.TimeoutError:
-            self.close()
-            raise TimeoutError(f"Connect to '{self.host}:{self.port}' timed out")
-        except OSError as e:
-            self.close()
-            raise ConnectError(f"Cannot connect to '{self.host}:{self.port}': {e}")
+            try:
+                await asyncio.wait_for(
+                    self._loop.sock_connect(self._sock, sockaddr),
+                    timeout=timeout,
+                )
+            except asyncio.TimeoutError:
+                self.close()
+                raise TimeoutError(f"Connect to '{self.host}:{self.port}' timed out")
+            except OSError as e:
+                self.close()
+                raise ConnectError(f"Cannot connect to '{self.host}:{self.port}': {e}")
 
     async def send(self, data: bytes):
-        await self._loop.sock_sendall(self._sock, data)
+        if self.schema == "https":
+            self.tls_transport.write(data)
+        else:
+            await self._loop.sock_sendall(self._sock, data)
 
     async def recv(self, n: int = 4096) -> bytes:
-        return await self._loop.sock_recv(self._sock, n)
+        if self.schema == "https":
+            return await self.protocol.read()
+        else:
+            return await self._loop.sock_recv(self._sock, n)
 
     def close(self):
-        if self._sock:
+        if self.schema == "https" and self.tls_transport:
+            self.tls_transport.close()
+        elif self._sock:
             self._sock.close()
             self._sock = None
 
     @property
     def is_connected(self) -> bool:
-        return self._sock is not None
+        return self._sock is not None or self.tls_transport is not None
     
 
 
 class MyProtocol(asyncio.Protocol):
-    def connection_made(self, transport):
-        print("Connected!")
+
+    def __init__(self):
+        super().__init__()
+        self.queue = asyncio.Queue()
+
+    def data_received(self, data):
+        self.queue.put_nowait(data)
+        return super().data_received(data)
+    
+    async def read(self):
+        return await self.queue.get()
+    
+    
