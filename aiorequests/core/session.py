@@ -44,7 +44,7 @@ class Session:
         
         body = rest
 
-        while len(rest) < int(content_length):
+        while len(body) < int(content_length):
             body += await connection.recv(n)
 
         response = Response.from_bytes(head+b"\r\n\r\n"+body)
