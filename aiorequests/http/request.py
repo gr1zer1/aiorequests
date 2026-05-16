@@ -1,6 +1,6 @@
 import json
 from urllib.parse import urlparse, ParseResult
-from exception import PortError
+from aiorequests.errors.exception import PortError
 
 
 class Request:

@@ -39,7 +39,7 @@ python main.py
 
 ```python
 import asyncio
-from client import Client
+from aiorequests import Client
 
 
 async def main():
@@ -133,13 +133,20 @@ All custom exceptions inherit from `AsyncHttpError`:
 
 ```text
 .
-├── client.py       # Client context manager
-├── connection.py   # TCP/TLS connection handling
-├── exception.py    # Custom exception classes
-├── main.py         # Usage example
-├── request.py      # HTTP request builder
-├── response.py     # HTTP response parser
-└── session.py      # Request methods and connection reuse
+├── aiorequests/
+│   ├── core/
+│   │   ├── client.py      # Client context manager
+│   │   └── session.py     # Request methods and connection reuse
+│   ├── errors/
+│   │   └── exception.py   # Custom exception classes
+│   ├── http/
+│   │   ├── request.py     # HTTP request builder
+│   │   └── response.py    # HTTP response parser
+│   ├── transport/
+│   │   └── connection.py  # TCP/TLS connection handling
+│   └── __init__.py        # Public package exports
+├── main.py                # Usage example
+└── test.py                # Scratch file
 ```
 
 ## Current Limitations

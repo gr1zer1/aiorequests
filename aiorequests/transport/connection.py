@@ -1,10 +1,9 @@
 import asyncio
 import socket
-from request import Request
 import ssl
 
-
-from exception import ConnectError, DNSError, TimeoutError
+from aiorequests.errors.exception import ConnectError, DNSError, TimeoutError
+from aiorequests.http.request import Request
 
 
 class Connection:

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from request import Request
-from response import Response
-from connection import Connection
+from aiorequests.http.request import Request
+from aiorequests.http.response import Response
+from aiorequests.transport.connection import Connection
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from client import Client
+    from .client import Client
 
 class Session:
     def __init__(self, client: Client):

@@ -1,8 +1,6 @@
-from connection import Connection
 import asyncio
-from request import Request
-from response import Response
-from client import Client
+
+from aiorequests import Client
 
 async def main():
 

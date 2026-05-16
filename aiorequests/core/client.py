@@ -1,4 +1,4 @@
-from session import Session
+from .session import Session
 
 class Client:
     def __init__(self,headers: dict[str,str] | None = None):
