@@ -1,6 +1,7 @@
 import pytest
 
 from aiorequests.core.client import Client
+from aiorequests.errors.exception import ConnectError
 from aiorequests.http.response import Response
 
 
@@ -83,3 +84,50 @@ async def test_client_context_closes_connections(fake_connection):
         await session.get("http://example.com/hello")
 
     assert fake_connection.created[0].closed is True
+
+
+@pytest.mark.asyncio
+async def test_retries_retryable_status_with_new_connection(monkeypatch):
+    class RetryStatusConnection(FakeConnection):
+        responses = [
+            [b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n"],
+            [b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\n\r\nok"],
+        ]
+
+        def __init__(self, url):
+            super().__init__(url)
+            self.recv_chunks = self.responses.pop(0)
+
+    FakeConnection.created = []
+    monkeypatch.setattr("aiorequests.core.session.Connection", RetryStatusConnection)
+
+    client = Client()
+    response = await client.session.get("http://example.com/hello", retries=1)
+
+    assert response.status_code == 200
+    assert response.body == "ok"
+    assert len(FakeConnection.created) == 2
+    assert FakeConnection.created[0].closed is True
+
+
+@pytest.mark.asyncio
+async def test_retries_connection_error_with_new_connection(monkeypatch):
+    class RetryConnectConnection(FakeConnection):
+        connect_calls = 0
+
+        async def connect(self):
+            type(self).connect_calls += 1
+            if self.connect_calls == 1:
+                raise ConnectError("temporary failure")
+            self.connected = True
+
+    FakeConnection.created = []
+    monkeypatch.setattr("aiorequests.core.session.Connection", RetryConnectConnection)
+
+    client = Client()
+    response = await client.session.get("http://example.com/hello", retries=1)
+
+    assert response.status_code == 200
+    assert len(FakeConnection.created) == 2
+    assert FakeConnection.created[0].closed is True
+    assert FakeConnection.created[1].connected is True

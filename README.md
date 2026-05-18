@@ -12,6 +12,7 @@
 - Common HTTP methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`
 - Default client headers and per-request headers
 - String and JSON request bodies
+- Retries for connection errors and temporary server errors
 - Basic response parsing with automatic JSON decoding
 - Custom exceptions for DNS, connection, timeout, and port errors
 
@@ -104,11 +105,25 @@ async with Client() as session:
 
 Available request methods:
 
-- `get(url, headers=None, n=4096)`
-- `post(url, body=None, headers=None, n=4096)`
-- `put(url, body=None, headers=None, n=4096)`
-- `patch(url, body=None, headers=None, n=4096)`
-- `delete(url, body=None, headers=None, n=4096)`
+- `get(url, headers=None, n=4096, retries=0, retry_delay=0.0)`
+- `post(url, body=None, headers=None, n=4096, retries=0, retry_delay=0.0)`
+- `put(url, body=None, headers=None, n=4096, retries=0, retry_delay=0.0)`
+- `patch(url, body=None, headers=None, n=4096, retries=0, retry_delay=0.0)`
+- `delete(url, body=None, headers=None, n=4096, retries=0, retry_delay=0.0)`
+
+Retry failed requests:
+
+```python
+async with Client() as session:
+    response = await session.get(
+        "https://example.com",
+        retries=3,
+        retry_delay=0.2,
+    )
+```
+
+Retries are attempted for connection-level errors and responses with status codes
+`500`, `502`, `503`, and `504`. Each retry opens a new connection.
 
 ### `Response`
 
@@ -154,7 +169,7 @@ All custom exceptions inherit from `AsyncHttpError`:
 - Only basic HTTP/1.1 response parsing is implemented.
 - Responses are expected to use `Content-Length`.
 - Chunked transfer encoding is not supported yet.
-- Redirect handling, cookies, retries, and connection pooling by host are not implemented yet.
+- Redirect handling, cookies, and connection pooling by host are not implemented yet.
 - The project is not packaged for PyPI yet.
 
 ## Roadmap
