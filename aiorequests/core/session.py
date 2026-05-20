@@ -25,8 +25,8 @@ class Session:
         return url
 
 
-    async def _send_once(self,method: str,url:str,body: None | str | dict = None, headers: dict[str,str] | None = None, n:int = 4096):
-        
+    async def _send_once(self,method: str,url:str,body: None | str | dict = None, params: dict[str, str] | None = None, headers: dict[str,str] | None = None, n:int = 4096):
+        url = self.build_url(url, params)
         connection = self.connections.get(url)
         if connection == None:
             connection = Connection.create_conn_from_url(url)
@@ -72,6 +72,7 @@ class Session:
         url: str,
         body: None | str | dict = None,
         headers: dict[str, str] | None = None,
+        params: dict[str, str] | None = None,
         n: int = 4096,
         retries: int = 0,
         retry_delay: float = 0.0,
@@ -84,7 +85,7 @@ class Session:
 
         for attempt in range(last_attempt):
             try:
-                response = await self._send_once(method, url, body, headers, n)
+                response = await self._send_once(method, url, body, params, headers, n)
             except (AsyncHttpError, OSError, EOFError):
                 self._drop_connection(url)
 
@@ -104,24 +105,23 @@ class Session:
             if retry_delay > 0:
                 await asyncio.sleep(retry_delay)
         
-    async def get(self,url:str, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
-        return await self._request("get", url, headers=headers, n=n, retries=retries, retry_delay=retry_delay)
+    async def get(self,url:str, params: dict[str, str] | None = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
+        return await self._request("get", url, params=params, headers=headers, n=n, retries=retries, retry_delay=retry_delay)
     
 
-    async def post(self,url:str,body: None | str | dict = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
-        return await self._request("post",url,body,headers,n,retries,retry_delay)
+    async def post(self,url:str,params: dict[str, str] | None = None,body: None | str | dict = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
+        return await self._request("post",url,params=params,body=body,headers=headers,n=n,retries=retries,retry_delay=retry_delay)
     
 
-    async def put(self,url:str,body: None | str | dict = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
-        return await self._request("put",url,body,headers,n,retries,retry_delay)
+    async def put(self,url:str,body: None | str | dict = None, params: dict[str, str] | None = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
+        return await self._request("put",url,body=body,params=params,headers=headers,n=n,retries=retries,retry_delay=retry_delay)
+    
+    async def patch(self,url:str,body: None | str | dict = None, params: dict[str, str] | None = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
+        return await self._request("patch",url,body=body,params=params,headers=headers,n=n,retries=retries,retry_delay=retry_delay)
     
 
-    async def patch(self,url:str,body: None | str | dict = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
-        return await self._request("patch",url,body,headers,n,retries,retry_delay)
-    
-
-    async def delete(self,url:str,body: None | str | dict = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
-        return await self._request("delete",url,body,headers,n,retries,retry_delay)
+    async def delete(self,url:str,body: None | str | dict = None, params: dict[str, str] | None = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
+        return await self._request("delete",url,body=body,params=params,headers=headers,n=n,retries=retries,retry_delay=retry_delay)
     
 
     def close_all_conn(self):
