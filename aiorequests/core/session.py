@@ -16,9 +16,17 @@ class Session:
     def __init__(self, client: Client):
         self.client = client
         self.connections: dict[str, Connection] = {}
+    
+
+    def build_url(self, url: str, params: dict[str, str] | None = None) -> str:
+        if params:
+            query_string = "&".join(f"{k}={v}" for k, v in params.items())
+            url += f"?{query_string}"
+        return url
 
 
     async def _send_once(self,method: str,url:str,body: None | str | dict = None, headers: dict[str,str] | None = None, n:int = 4096):
+        
         connection = self.connections.get(url)
         if connection == None:
             connection = Connection.create_conn_from_url(url)
