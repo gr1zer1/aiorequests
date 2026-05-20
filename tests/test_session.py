@@ -77,6 +77,22 @@ async def test_reuses_connection_for_same_url(fake_connection):
 
 
 @pytest.mark.asyncio
+async def test_get_request_adds_query_params(fake_connection):
+    client = Client()
+
+    await client.session.get(
+        "http://example.com/search",
+        params={"q": "python", "page": "1"},
+    )
+
+    assert len(fake_connection.created) == 1
+    assert fake_connection.created[0].url == "http://example.com/search?q=python&page=1"
+    assert fake_connection.created[0].sent[0].startswith(
+        b"GET /search?q=python&page=1 HTTP/1.1\r\n"
+    )
+
+
+@pytest.mark.asyncio
 async def test_client_context_closes_connections(fake_connection):
     client = Client()
 
