@@ -1,22 +1,21 @@
 from __future__ import annotations
 
 import asyncio
+from typing import TYPE_CHECKING
 
 from aiorequests.errors.exception import AsyncHttpError
 from aiorequests.http.request import Request
 from aiorequests.http.response import Response
 from aiorequests.transport.connection import Connection
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from .client import Client
+
 
 class Session:
     def __init__(self, client: Client):
         self.client = client
         self.connections: dict[str, Connection] = {}
-    
 
     def build_url(self, url: str, params: dict[str, str] | None = None) -> str:
         if params:
@@ -24,41 +23,47 @@ class Session:
             url += f"?{query_string}"
         return url
 
-
-    async def _send_once(self,method: str,url:str,body: None | str | dict = None, params: dict[str, str] | None = None, headers: dict[str,str] | None = None, n:int = 4096):
+    async def _send_once(
+        self,
+        method: str,
+        url: str,
+        body: None | str | dict = None,
+        params: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+        n: int = 4096,
+    ):
         url = self.build_url(url, params)
         connection = self.connections.get(url)
-        if connection == None:
+        if connection is None:
             connection = Connection.create_conn_from_url(url)
             self.connections[url] = connection
             await connection.connect()
 
-        new_headers = {**(self.client.headers or {}),**(headers or {})}
-            
-        request = Request(method,url,new_headers,body)
+        new_headers = {**(self.client.headers or {}), **(headers or {})}
+
+        request = Request(method, url, new_headers, body)
 
         await connection.send(request.to_bytes())
 
-        buffer = b''
+        buffer = b""
         while b"\r\n\r\n" not in buffer:
             buffer += await connection.recv(n)
-        
-        head,rest = buffer.split(b"\r\n\r\n", 1)
 
+        head, rest = buffer.split(b"\r\n\r\n", 1)
 
-        content_length:int = 0
+        content_length: int = 0
         heads = head.split(b"\r\n")
         for h in heads:
             if b"Content-Length" in h:
-                _,content_length = h.decode().split(":",1)
-        
+                _, content_length = h.decode().split(":", 1)
+
         body = rest
 
         while len(body) < int(content_length):
             body += await connection.recv(n)
 
-        response = Response.from_bytes(head+b"\r\n\r\n"+body)
-        
+        response = Response.from_bytes(head + b"\r\n\r\n" + body)
+
         return response
 
     def _drop_connection(self, url: str):
@@ -104,30 +109,110 @@ class Session:
 
             if retry_delay > 0:
                 await asyncio.sleep(retry_delay)
-        
-    async def get(self,url:str, params: dict[str, str] | None = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
-        return await self._request("get", url, params=params, headers=headers, n=n, retries=retries, retry_delay=retry_delay)
-    
 
-    async def post(self,url:str,params: dict[str, str] | None = None,body: None | str | dict = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
-        return await self._request("post",url,params=params,body=body,headers=headers,n=n,retries=retries,retry_delay=retry_delay)
-    
+    async def get(
+        self,
+        url: str,
+        params: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+        n: int = 4096,
+        retries: int = 0,
+        retry_delay: float = 0.0,
+    ):
+        return await self._request(
+            "get",
+            url,
+            params=params,
+            headers=headers,
+            n=n,
+            retries=retries,
+            retry_delay=retry_delay,
+        )
 
-    async def put(self,url:str,body: None | str | dict = None, params: dict[str, str] | None = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
-        return await self._request("put",url,body=body,params=params,headers=headers,n=n,retries=retries,retry_delay=retry_delay)
-    
-    async def patch(self,url:str,body: None | str | dict = None, params: dict[str, str] | None = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
-        return await self._request("patch",url,body=body,params=params,headers=headers,n=n,retries=retries,retry_delay=retry_delay)
-    
+    async def post(
+        self,
+        url: str,
+        params: dict[str, str] | None = None,
+        body: None | str | dict = None,
+        headers: dict[str, str] | None = None,
+        n: int = 4096,
+        retries: int = 0,
+        retry_delay: float = 0.0,
+    ):
+        return await self._request(
+            "post",
+            url,
+            params=params,
+            body=body,
+            headers=headers,
+            n=n,
+            retries=retries,
+            retry_delay=retry_delay,
+        )
 
-    async def delete(self,url:str,body: None | str | dict = None, params: dict[str, str] | None = None, headers: dict[str,str] | None = None, n:int = 4096, retries: int = 0, retry_delay: float = 0.0):
-        return await self._request("delete",url,body=body,params=params,headers=headers,n=n,retries=retries,retry_delay=retry_delay)
-    
+    async def put(
+        self,
+        url: str,
+        body: None | str | dict = None,
+        params: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+        n: int = 4096,
+        retries: int = 0,
+        retry_delay: float = 0.0,
+    ):
+        return await self._request(
+            "put",
+            url,
+            body=body,
+            params=params,
+            headers=headers,
+            n=n,
+            retries=retries,
+            retry_delay=retry_delay,
+        )
+
+    async def patch(
+        self,
+        url: str,
+        body: None | str | dict = None,
+        params: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+        n: int = 4096,
+        retries: int = 0,
+        retry_delay: float = 0.0,
+    ):
+        return await self._request(
+            "patch",
+            url,
+            body=body,
+            params=params,
+            headers=headers,
+            n=n,
+            retries=retries,
+            retry_delay=retry_delay,
+        )
+
+    async def delete(
+        self,
+        url: str,
+        body: None | str | dict = None,
+        params: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+        n: int = 4096,
+        retries: int = 0,
+        retry_delay: float = 0.0,
+    ):
+        return await self._request(
+            "delete",
+            url,
+            body=body,
+            params=params,
+            headers=headers,
+            n=n,
+            retries=retries,
+            retry_delay=retry_delay,
+        )
 
     def close_all_conn(self):
         for conn in self.connections.values():
             conn.close()
-    
-
-    
-    
